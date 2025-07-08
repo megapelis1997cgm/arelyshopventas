@@ -162,6 +162,24 @@
             const grandTotalEl = document.getElementById('grandTotal');
             const downloadPdfBtn = document.getElementById('downloadPdfBtn');
             const receiptEl = document.getElementById('receipt');
+            const saleNumberEl = document.getElementById('saleNumber');
+            let saleCounter = 1;
+
+            // Function to initialize and update the sale number
+            function initializeSaleNumber() {
+                const lastSaleNumber = localStorage.getItem('saleCounter');
+                if (lastSaleNumber) {
+                    saleCounter = parseInt(lastSaleNumber, 10);
+                }
+                saleNumberEl.textContent = saleCounter.toString().padStart(3, '0');
+            }
+
+            // Function to increment the sale number after a download
+            function incrementSaleNumber() {
+                saleCounter++;
+                localStorage.setItem('saleCounter', saleCounter.toString());
+                saleNumberEl.textContent = saleCounter.toString().padStart(3, '0');
+            }
 
             // Set current date
             const today = new Date();
@@ -227,16 +245,14 @@
             downloadPdfBtn.addEventListener('click', () => {
                 const { jsPDF } = window.jspdf;
                 const clientName = document.getElementById('clientName').value || 'sin-nombre';
-                const saleNumber = document.getElementById('saleNumber').textContent;
-                const fileName = `Nota_Venta_${saleNumber}_${clientName.replace(/ /g, '_')}.pdf`;
+                // Use the currently displayed sale number for the PDF file name
+                const currentSaleNumberForFile = saleNumberEl.textContent;
+                const fileName = `Nota_Venta_${currentSaleNumberForFile}_${clientName.replace(/ /g, '_')}.pdf`;
 
                 // --- PREPARE FOR PDF GENERATION ---
-                // 1. Hide controls
                 const actionCols = document.querySelectorAll('.action-col');
                 actionCols.forEach(col => col.style.display = 'none');
                 addProductBtn.style.display = 'none';
-
-                // 2. Replace inputs with static text
                 const inputs = receiptEl.querySelectorAll('input[type="text"], input[type="number"]');
                 inputs.forEach(input => {
                     const span = document.createElement('span');
@@ -248,52 +264,52 @@
 
                 html2canvas(receiptEl, { 
                     scale: 2,
-                    useCORS: true // Important for external images
+                    useCORS: true
                 }).then(canvas => {
-                    const imgData = canvas.toDataURL('image/png');
+                    const imgData = canvas.toDataURL('image/jpeg', 0.8);
                     const pdf = new jsPDF({
                         orientation: 'p',
                         unit: 'mm',
-                        format: 'a4'
+                        format: 'letter'
                     });
                     
-                    const margin = 10; // 10mm margin
+                    const margin = 10;
                     const pdfWidth = pdf.internal.pageSize.getWidth();
                     const contentWidth = pdfWidth - (margin * 2);
-                    
                     const canvasWidth = canvas.width;
                     const canvasHeight = canvas.height;
-                    
                     const imgHeight = (canvasHeight * contentWidth) / canvasWidth;
                     let heightLeft = imgHeight;
                     let position = 0;
 
-                    pdf.addImage(imgData, 'PNG', margin, margin, contentWidth, imgHeight);
+                    pdf.addImage(imgData, 'JPEG', margin, margin, contentWidth, imgHeight);
                     heightLeft -= (pdf.internal.pageSize.getHeight() - margin * 2);
 
                     while (heightLeft > 0) {
                         position -= (pdf.internal.pageSize.getHeight() - margin * 2);
                         pdf.addPage();
-                        pdf.addImage(imgData, 'PNG', margin, position, contentWidth, imgHeight);
+                        pdf.addImage(imgData, 'JPEG', margin, position, contentWidth, imgHeight);
                         heightLeft -= (pdf.internal.pageSize.getHeight() - margin * 2);
                     }
                     
                     pdf.save(fileName);
+                    
+                    // Increment the sale number only after successful save
+                    incrementSaleNumber();
+
                 }).catch(err => {
                     console.error("Error generating PDF:", err);
                 }).finally(() => {
                     // --- CLEAN UP AFTER PDF GENERATION ---
-                    // 1. Restore controls
                     actionCols.forEach(col => col.style.display = '');
                     addProductBtn.style.display = '';
-                    
-                    // 2. Remove static text and restore inputs
                     document.querySelectorAll('.pdf-text-replacement').forEach(span => span.remove());
                     inputs.forEach(input => input.style.display = '');
                 });
             });
 
-            // Add one initial row
+            // Initialize page
+            initializeSaleNumber();
             addRow();
         });
     </script>
