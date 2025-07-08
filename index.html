@@ -63,6 +63,19 @@
             <h1 class="text-3xl font-extrabold text-gray-900 mb-6 text-center">
                 Generador de Notas de Venta
             </h1>
+
+            <!-- Google Sheets Integration Section -->
+            <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+                <h2 class="text-lg font-semibold text-gray-800 mb-3">Conectar con Google Sheets</h2>
+                <p class="text-sm text-gray-600 mb-4">
+                    Pega el enlace de tu hoja de productos publicada como CSV. (Archivo > Compartir > Publicar en la web > CSV)
+                </p>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <input type="url" id="googleSheetUrl" placeholder="Pega aquí el enlace .csv de Google Sheets" class="flex-grow p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value="https://docs.google.com/spreadsheets/d/e/2PACX-1vRzXS5SwaX7nnnYV4yFhfaUzRHi-1VKpp2B1ovoI7p3JwGr37vXUSIXxi5p6r9Tt7vhWfvW5OY7fD1W/pub?output=csv">
+                    <button id="loadProductsBtn" class="px-5 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200">Cargar Productos</button>
+                </div>
+                <p id="loadingStatus" class="text-sm text-gray-500 mt-2"></p>
+            </div>
             
             <!-- Receipt Container -->
             <div id="receipt" class="bg-white rounded-lg overflow-hidden">
@@ -116,6 +129,7 @@
                                 <!-- Product rows will be inserted here by JavaScript -->
                             </tbody>
                         </table>
+                        <datalist id="productList"></datalist>
                     </div>
                     <button id="addProductBtn" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200 text-sm">+ Añadir Producto</button>
 
@@ -163,9 +177,66 @@
             const downloadPdfBtn = document.getElementById('downloadPdfBtn');
             const receiptEl = document.getElementById('receipt');
             const saleNumberEl = document.getElementById('saleNumber');
+            const loadProductsBtn = document.getElementById('loadProductsBtn');
+            const googleSheetUrlInput = document.getElementById('googleSheetUrl');
+            const loadingStatusEl = document.getElementById('loadingStatus');
+            const productListDatalist = document.getElementById('productList');
+            
             let saleCounter = 1;
+            let productsData = [];
 
-            // Function to initialize and update the sale number
+            // --- GOOGLE SHEETS INTEGRATION ---
+            async function loadProducts() {
+                const url = googleSheetUrlInput.value.trim();
+                if (!url) {
+                    loadingStatusEl.textContent = 'Por favor, introduce un enlace válido.';
+                    loadingStatusEl.style.color = 'red';
+                    return;
+                }
+
+                loadingStatusEl.textContent = 'Cargando productos...';
+                loadingStatusEl.style.color = 'gray';
+
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error('No se pudo cargar la hoja de cálculo. Verifica el enlace y los permisos.');
+                    }
+                    const csvText = await response.text();
+                    
+                    const rows = csvText.split('\n').slice(1);
+                    productsData = rows.map(row => {
+                        const columns = row.split(',');
+                        if (columns.length >= 2 && columns[0] && columns[1]) {
+                            return {
+                                name: columns[0].trim(),
+                                price: parseFloat(columns[1].trim()) || 0
+                            };
+                        }
+                        return null;
+                    }).filter(p => p !== null);
+
+                    productListDatalist.innerHTML = '';
+                    productsData.forEach(product => {
+                        const option = document.createElement('option');
+                        option.value = product.name;
+                        productListDatalist.appendChild(option);
+                    });
+
+                    loadingStatusEl.textContent = `¡${productsData.length} productos cargados exitosamente!`;
+                    loadingStatusEl.style.color = 'green';
+
+                } catch (error) {
+                    console.error('Error loading products:', error);
+                    loadingStatusEl.textContent = `Error: ${error.message}`;
+                    loadingStatusEl.style.color = 'red';
+                }
+            }
+
+            loadProductsBtn.addEventListener('click', loadProducts);
+
+
+            // --- SALE NUMBER LOGIC ---
             function initializeSaleNumber() {
                 const lastSaleNumber = localStorage.getItem('saleCounter');
                 if (lastSaleNumber) {
@@ -174,25 +245,24 @@
                 saleNumberEl.textContent = saleCounter.toString().padStart(3, '0');
             }
 
-            // Function to increment the sale number after a download
             function incrementSaleNumber() {
                 saleCounter++;
                 localStorage.setItem('saleCounter', saleCounter.toString());
                 saleNumberEl.textContent = saleCounter.toString().padStart(3, '0');
             }
 
-            // Set current date
+            // --- DATE ---
             const today = new Date();
             document.getElementById('currentDate').textContent = today.toLocaleDateString('es-BO');
 
-            // Function to format currency
+            // --- CURRENCY FORMATTING ---
             const formatCurrency = (value) => {
                 const numberValue = Number(value);
                 if (isNaN(numberValue)) return 'Bs. 0.00';
                 return `Bs. ${numberValue.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             };
 
-            // Function to calculate totals
+            // --- TABLE LOGIC ---
             const updateTotals = () => {
                 let subtotal = 0;
                 const rows = productRowsContainer.querySelectorAll('tr');
@@ -210,12 +280,11 @@
                 grandTotalEl.textContent = formatCurrency(subtotal);
             };
 
-            // Function to add a new product row
             const addRow = () => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td class="px-2 py-2"><input type="number" class="quantity" value="1" min="1"></td>
-                    <td class="px-2 py-2"><input type="text" class="product-name" placeholder="Nombre del producto"></td>
+                    <td class="px-2 py-2"><input type="text" class="product-name" placeholder="Nombre del producto" list="productList"></td>
                     <td class="px-2 py-2"><input type="number" class="unit-cost" placeholder="0.00" step="0.01"></td>
                     <td class="px-2 py-2"><input type="number" class="discount" value="0" min="0" max="100"></td>
                     <td class="px-2 py-2 text-right row-total font-medium">${formatCurrency(0)}</td>
@@ -224,9 +293,16 @@
                 productRowsContainer.appendChild(row);
             };
 
-            // Event delegation for input changes and row deletion
             productRowsContainer.addEventListener('input', (e) => {
-                if (e.target.matches('.quantity, .unit-cost, .discount')) {
+                if (e.target.classList.contains('product-name')) {
+                    const selectedProduct = productsData.find(p => p.name === e.target.value);
+                    if (selectedProduct) {
+                        const row = e.target.closest('tr');
+                        row.querySelector('.unit-cost').value = selectedProduct.price;
+                    }
+                }
+                
+                if (e.target.matches('.quantity, .unit-cost, .discount, .product-name')) {
                     updateTotals();
                 }
             });
@@ -238,19 +314,16 @@
                 }
             });
 
-            // Add new row button
             addProductBtn.addEventListener('click', addRow);
 
-            // Download PDF button
+            // --- PDF GENERATION ---
             downloadPdfBtn.addEventListener('click', () => {
                 const { jsPDF } = window.jspdf;
                 const clientName = document.getElementById('clientName').value || 'sin-nombre';
                 const currentSaleNumberForFile = saleNumberEl.textContent;
                 const fileName = `Nota_Venta_${currentSaleNumberForFile}_${clientName.replace(/ /g, '_')}.pdf`;
 
-                // --- PREPARE FOR PDF GENERATION ---
                 const originalWidth = receiptEl.style.width;
-                // Force a fixed width to ensure desktop layout for PDF
                 receiptEl.style.width = '1024px';
 
                 const actionCols = document.querySelectorAll('.action-col');
@@ -301,8 +374,7 @@
                 }).catch(err => {
                     console.error("Error generating PDF:", err);
                 }).finally(() => {
-                    // --- CLEAN UP AFTER PDF GENERATION ---
-                    receiptEl.style.width = originalWidth; // Restore original width
+                    receiptEl.style.width = originalWidth;
                     actionCols.forEach(col => col.style.display = '');
                     addProductBtn.style.display = '';
                     document.querySelectorAll('.pdf-text-replacement').forEach(span => span.remove());
@@ -310,9 +382,13 @@
                 });
             });
 
-            // Initialize page
+            // --- INITIALIZE PAGE ---
             initializeSaleNumber();
             addRow();
+            // Automatically try to load products on page load
+            if(googleSheetUrlInput.value) {
+                loadProducts();
+            }
         });
     </script>
 </body>
