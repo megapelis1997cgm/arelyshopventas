@@ -38,6 +38,13 @@
         .delete-row-btn:hover {
             color: #b91c1c; /* Darker red on hover */
         }
+        /* Class to replace inputs for PDF */
+        .pdf-text-replacement {
+            padding: 0.5rem;
+            display: inline-block;
+            min-height: 2.5rem; /* Match input height */
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body class="bg-f0f2f5">
@@ -47,7 +54,7 @@
             <img src="https://dcdn-us.mitiendanube.com/stores/004/546/736/themes/common/logo-660776128-1736645739-9bb5db1715d3b799cdf782b0f0815d541736645739.webp?0" 
                  alt="Logo ArelyShop" 
                  class="h-12"
-                 onerror="this.onerror=null; this.src='https://placehold.co/200x50/1e293b/ffffff?text=ArelyShop';">
+                 onerror="this.onerror=null; this.src='https://placehold.co/200x50/0f172a/ffffff?text=ArelyShop';">
         </div>
     </header>
 
@@ -58,80 +65,82 @@
             </h1>
             
             <!-- Receipt Container -->
-            <div id="receipt" class="bg-white p-6 md:p-8 rounded-lg">
+            <div id="receipt" class="bg-white rounded-lg overflow-hidden">
                 <!-- Receipt Header -->
-                <div id="receiptHeader" class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 mb-4 p-4 rounded-t-lg">
+                <div id="receiptHeader" class="bg-slate-900 text-white flex flex-col sm:flex-row justify-between items-start sm:items-center p-6">
                     <div class="flex items-center mb-4 sm:mb-0">
                         <img id="receiptLogo" src="https://dcdn-us.mitiendanube.com/stores/004/546/736/themes/common/logo-660776128-1736645739-9bb5db1715d3b799cdf782b0f0815d541736645739.webp?0" alt="Logo" class="h-10 mr-4" crossorigin="anonymous" onerror="this.onerror=null; this.src='https://placehold.co/100x40/ffffff/000000?text=Logo';">
                         <div>
-                            <h2 class="text-xl font-bold text-gray-800 header-text">ArelyShop</h2>
-                            <p class="text-sm text-gray-500 header-text">Santa Cruz de la Sierra, Bolivia</p>
+                            <h2 class="text-xl font-bold">ArelyShop</h2>
+                            <p class="text-sm text-slate-300">Santa Cruz de la Sierra, Bolivia</p>
                         </div>
                     </div>
                     <div class="text-left sm:text-right">
-                        <p class="text-lg font-semibold header-text">Nota de Venta</p>
-                        <p class="text-sm text-gray-600 header-text"><strong>Nr:</strong> <span id="saleNumber">001</span></p>
-                        <p class="text-sm text-gray-600 header-text"><strong>Fecha:</strong> <span id="currentDate"></span></p>
+                        <p class="text-lg font-semibold">Nota de Venta</p>
+                        <p class="text-sm text-slate-300"><strong>Nr:</strong> <span id="saleNumber">001</span></p>
+                        <p class="text-sm text-slate-300"><strong>Fecha:</strong> <span id="currentDate"></span></p>
                     </div>
                 </div>
-
-                <!-- Customer Info -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 px-4">
-                    <div>
-                        <label for="clientName" class="block text-sm font-medium text-gray-700">Nombre del Cliente:</label>
-                        <input type="text" id="clientName" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2">
-                    </div>
-                    <div>
-                        <label for="clientPhone" class="block text-sm font-medium text-gray-700">Teléfono:</label>
-                        <input type="text" id="clientPhone" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2">
-                    </div>
-                    <div>
-                        <label for="clientNit" class="block text-sm font-medium text-gray-700">NIT o CI:</label>
-                        <input type="text" id="clientNit" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2">
-                    </div>
-                </div>
-
-                <!-- Products Table -->
-                <div class="overflow-x-auto px-4">
-                    <table class="min-w-full divide-y divide-gray-200 product-table">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cant.</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Producto</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Costo Unit.</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Desc. (%)</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider action-col"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="product-rows" class="bg-white divide-y divide-gray-200">
-                            <!-- Product rows will be inserted here by JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-                <button id="addProductBtn" class="mt-4 mx-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200 text-sm">+ Añadir Producto</button>
-
-                <!-- Totals Section -->
-                <div class="flex justify-end mt-6 px-4">
-                    <div class="w-full max-w-xs">
-                        <div class="flex justify-between text-gray-700">
-                            <span>Subtotal:</span>
-                            <span id="subtotal">Bs. 0.00</span>
+                
+                <div class="p-6">
+                    <!-- Customer Info -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div>
+                            <label for="clientName" class="block text-sm font-medium text-gray-700">Nombre del Cliente:</label>
+                            <input type="text" id="clientName" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2">
                         </div>
-                        <div class="flex justify-between font-bold text-xl text-gray-900 mt-2 pt-2 border-t">
-                            <span>MONTO TOTAL:</span>
-                            <span id="grandTotal">Bs. 0.00</span>
+                        <div>
+                            <label for="clientPhone" class="block text-sm font-medium text-gray-700">Teléfono:</label>
+                            <input type="text" id="clientPhone" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2">
+                        </div>
+                        <div>
+                            <label for="clientNit" class="block text-sm font-medium text-gray-700">NIT o CI:</label>
+                            <input type="text" id="clientNit" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2">
                         </div>
                     </div>
-                </div>
 
-                <!-- Footer -->
-                <div class="text-center border-t mt-8 pt-4">
-                    <p class="text-gray-700 font-semibold">¡Gracias por su compra!</p>
-                    <p class="text-sm text-gray-500">
-                        Visita nuestra tienda online: 
-                        <a href="https://arelyshopbo.mitiendanube.com/productos/" target="_blank" class="text-blue-600 hover:underline">arelyshopbo.mitiendanube.com</a>
-                    </p>
+                    <!-- Products Table -->
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 product-table">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cant.</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Producto</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Costo Unit.</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Desc. (%)</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider action-col"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="product-rows" class="bg-white divide-y divide-gray-200">
+                                <!-- Product rows will be inserted here by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <button id="addProductBtn" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200 text-sm">+ Añadir Producto</button>
+
+                    <!-- Totals Section -->
+                    <div class="flex justify-end mt-6">
+                        <div class="w-full max-w-xs">
+                            <div class="flex justify-between text-gray-700">
+                                <span>Subtotal:</span>
+                                <span id="subtotal">Bs. 0.00</span>
+                            </div>
+                            <div class="flex justify-between font-bold text-xl text-gray-900 mt-2 pt-2 border-t">
+                                <span>MONTO TOTAL:</span>
+                                <span id="grandTotal">Bs. 0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="text-center border-t mt-8 pt-4">
+                        <p class="text-gray-700 font-semibold">¡Gracias por su compra!</p>
+                        <p class="text-sm text-gray-500">
+                            Visita nuestra tienda online: 
+                            <a href="https://arelyshopbo.mitiendanube.com/productos/" target="_blank" class="text-blue-600 hover:underline">arelyshopbo.mitiendanube.com</a>
+                        </p>
+                    </div>
                 </div>
             </div>
 
@@ -221,27 +230,26 @@
                 const saleNumber = document.getElementById('saleNumber').textContent;
                 const fileName = `Nota_Venta_${saleNumber}_${clientName.replace(/ /g, '_')}.pdf`;
 
-                // Elements to modify for PDF
-                const receiptHeader = document.getElementById('receiptHeader');
-                const headerTexts = receiptHeader.querySelectorAll('.header-text');
+                // --- PREPARE FOR PDF GENERATION ---
+                // 1. Hide controls
                 const actionCols = document.querySelectorAll('.action-col');
-
-                // Prepare for PDF generation
-                receiptHeader.style.backgroundColor = '#1e3a8a'; // Navy Blue
-                headerTexts.forEach(el => el.style.color = 'white');
                 actionCols.forEach(col => col.style.display = 'none');
                 addProductBtn.style.display = 'none';
+
+                // 2. Replace inputs with static text
+                const inputs = receiptEl.querySelectorAll('input[type="text"], input[type="number"]');
+                inputs.forEach(input => {
+                    const span = document.createElement('span');
+                    span.className = 'pdf-text-replacement';
+                    span.textContent = input.value;
+                    input.style.display = 'none';
+                    input.parentNode.insertBefore(span, input.nextSibling);
+                });
 
                 html2canvas(receiptEl, { 
                     scale: 2,
                     useCORS: true // Important for external images
                 }).then(canvas => {
-                    // Revert styles after canvas is created
-                    receiptHeader.style.backgroundColor = '';
-                    headerTexts.forEach(el => el.style.color = '');
-                    actionCols.forEach(col => col.style.display = '');
-                    addProductBtn.style.display = '';
-
                     const imgData = canvas.toDataURL('image/png');
                     const pdf = new jsPDF({
                         orientation: 'p',
@@ -249,35 +257,39 @@
                         format: 'a4'
                     });
                     
+                    const margin = 10; // 10mm margin
                     const pdfWidth = pdf.internal.pageSize.getWidth();
-                    const pdfHeight = pdf.internal.pageSize.getHeight();
+                    const contentWidth = pdfWidth - (margin * 2);
+                    
                     const canvasWidth = canvas.width;
                     const canvasHeight = canvas.height;
-                    const ratio = canvasWidth / canvasHeight;
                     
-                    const imgWidth = pdfWidth; // Use full width
-                    let imgHeight = imgWidth / ratio;
+                    const imgHeight = (canvasHeight * contentWidth) / canvasWidth;
                     let heightLeft = imgHeight;
                     let position = 0;
 
-                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pdfHeight;
+                    pdf.addImage(imgData, 'PNG', margin, margin, contentWidth, imgHeight);
+                    heightLeft -= (pdf.internal.pageSize.getHeight() - margin * 2);
 
                     while (heightLeft > 0) {
-                        position = heightLeft - imgHeight;
+                        position -= (pdf.internal.pageSize.getHeight() - margin * 2);
                         pdf.addPage();
-                        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                        heightLeft -= pdfHeight;
+                        pdf.addImage(imgData, 'PNG', margin, position, contentWidth, imgHeight);
+                        heightLeft -= (pdf.internal.pageSize.getHeight() - margin * 2);
                     }
                     
                     pdf.save(fileName);
                 }).catch(err => {
                     console.error("Error generating PDF:", err);
-                     // Ensure styles are reverted even if there's an error
-                    receiptHeader.style.backgroundColor = '';
-                    headerTexts.forEach(el => el.style.color = '');
+                }).finally(() => {
+                    // --- CLEAN UP AFTER PDF GENERATION ---
+                    // 1. Restore controls
                     actionCols.forEach(col => col.style.display = '');
                     addProductBtn.style.display = '';
+                    
+                    // 2. Remove static text and restore inputs
+                    document.querySelectorAll('.pdf-text-replacement').forEach(span => span.remove());
+                    inputs.forEach(input => input.style.display = '');
                 });
             });
 
