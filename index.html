@@ -205,7 +205,7 @@
                                 <thead class="bg-gray-50">
                                     <tr>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cant.</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Producto</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Producto / SKU</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Costo Unit.</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Desc. (%)</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
@@ -384,11 +384,12 @@
                         const rows = csvText.split('\n').slice(1);
                         productsData = rows.map(row => {
                             const columns = row.split(',');
-                            if (columns.length >= 3 && columns[0] && columns[1]) {
+                            if (columns.length >= 5 && columns[0] && columns[1]) {
                                 return {
                                     name: columns[0].trim().replace(/"/g, ''),
                                     price: parseFloat(columns[1].trim()) || 0,
-                                    cost: parseFloat(columns[2].trim()) || 0
+                                    cost: parseFloat(columns[2].trim()) || 0,
+                                    sku: columns[4] ? columns[4].trim().replace(/"/g, '') : ''
                                 };
                             }
                             return null;
@@ -396,9 +397,14 @@
 
                         productListDatalist.innerHTML = '';
                         productsData.forEach(product => {
-                            const option = document.createElement('option');
-                            option.value = product.name;
-                            productListDatalist.appendChild(option);
+                            const nameOption = document.createElement('option');
+                            nameOption.value = product.name;
+                            productListDatalist.appendChild(nameOption);
+                            if (product.sku) {
+                                const skuOption = document.createElement('option');
+                                skuOption.value = product.sku;
+                                productListDatalist.appendChild(skuOption);
+                            }
                         });
 
                         loadingStatusEl.textContent = `¡${productsData.length} productos cargados exitosamente!`;
@@ -556,7 +562,7 @@
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td class="px-2 py-2"><input type="number" class="quantity" value="1" min="1"></td>
-                        <td class="px-2 py-2"><input type="text" class="product-name" placeholder="Nombre del producto" list="productList"></td>
+                        <td class="px-2 py-2"><input type="text" class="product-name" placeholder="Nombre o SKU" list="productList"></td>
                         <td class="px-2 py-2"><input type="number" class="unit-cost" placeholder="0.00" step="0.01"></td>
                         <td class="px-2 py-2"><input type="number" class="discount" value="0" min="0" max="100"></td>
                         <td class="px-2 py-2 text-right row-total font-medium">${formatCurrency(0)}</td>
@@ -568,9 +574,11 @@
 
                 productRowsContainer.addEventListener('input', (e) => {
                     if (e.target.classList.contains('product-name')) {
-                        const selectedProduct = productsData.find(p => p.name === e.target.value);
+                        const inputValue = e.target.value;
+                        const selectedProduct = productsData.find(p => p.name === inputValue || p.sku === inputValue);
                         if (selectedProduct) {
                             const row = e.target.closest('tr');
+                            row.querySelector('.product-name').value = selectedProduct.name;
                             row.querySelector('.unit-cost').value = selectedProduct.price;
                         }
                     }
