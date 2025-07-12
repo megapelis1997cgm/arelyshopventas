@@ -730,6 +730,7 @@
                     const tableRows = data.map(item => {
                         const productInfo = productsData.find(p => p.name === item.productName);
                         const cost = productInfo ? productInfo.cost : 0;
+                        const sku = productInfo ? productInfo.sku : 'N/A';
                         const itemCost = cost * item.quantity;
                         const profit = item.totalProduct - itemCost;
                         
@@ -740,6 +741,7 @@
                             <tr>
                                 <td class="border px-4 py-2">${item.date}</td>
                                 <td class="border px-4 py-2">${item.saleNumber}</td>
+                                <td class="border px-4 py-2">${sku}</td>
                                 <td class="border px-4 py-2">${item.productName}</td>
                                 <td class="border px-4 py-2 text-center">${item.quantity}</td>
                                 <td class="border px-4 py-2 text-right">${formatCurrency(item.totalProduct)}</td>
@@ -757,6 +759,7 @@
                                 <tr>
                                     <th class="px-4 py-3">Fecha</th>
                                     <th class="px-4 py-3">Nr. Venta</th>
+                                    <th class="px-4 py-3">SKU</th>
                                     <th class="px-4 py-3">Producto</th>
                                     <th class="px-4 py-3 text-center">Cant.</th>
                                     <th class="px-4 py-3 text-right">Venta Total</th>
@@ -769,7 +772,7 @@
                             </tbody>
                             <tfoot class="font-bold text-gray-800 bg-gray-100">
                                 <tr>
-                                    <td colspan="4" class="border px-4 py-2 text-right">TOTALES</td>
+                                    <td colspan="5" class="border px-4 py-2 text-right">TOTALES</td>
                                     <td class="border px-4 py-2 text-right">${formatCurrency(totalSales)}</td>
                                     <td class="border px-4 py-2 text-right">${formatCurrency(totalCost)}</td>
                                     <td class="border px-4 py-2 text-right text-lg ${totalProfit > 0 ? 'text-green-700' : 'text-red-700'}">${formatCurrency(totalProfit)}</td>
