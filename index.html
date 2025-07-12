@@ -135,14 +135,33 @@
                     </div>
                 </div>
 
-                <!-- Search Section -->
+                <!-- Search and Report Section -->
                 <div class="bg-white p-6 rounded-lg shadow-md mb-8">
-                    <h2 class="text-lg font-semibold text-gray-800 mb-3">Reimprimir Nota de Venta</h2>
-                    <div class="flex flex-col sm:flex-row gap-2">
-                        <input type="number" id="searchSaleInput" placeholder="Introduce el Nr. de Venta" class="flex-grow p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <button id="searchSaleBtn" class="px-5 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition duration-200">Buscar</button>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <h2 class="text-lg font-semibold text-gray-800 mb-3">Reimprimir Nota de Venta</h2>
+                            <div class="flex flex-col sm:flex-row gap-2">
+                                <input type="number" id="searchSaleInput" placeholder="Introduce el Nr. de Venta" class="flex-grow p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <button id="searchSaleBtn" class="px-5 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition duration-200">Buscar</button>
+                            </div>
+                            <p id="searchStatus" class="text-sm text-gray-500 mt-2"></p>
+                        </div>
+                        <!-- Report Section (Admin only) -->
+                        <div id="report-section-container" style="display: none;">
+                            <h2 class="text-lg font-semibold text-gray-800 mb-3">Generar Reporte de Ventas</h2>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div>
+                                    <label for="startDate" class="block text-xs font-medium text-gray-700">Fecha de Inicio</label>
+                                    <input type="date" id="startDate" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2">
+                                </div>
+                                <div>
+                                    <label for="endDate" class="block text-xs font-medium text-gray-700">Fecha de Fin</label>
+                                    <input type="date" id="endDate" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2">
+                                </div>
+                            </div>
+                            <button id="generateReportBtn" class="mt-3 w-full px-5 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition duration-200">Generar Reporte</button>
+                        </div>
                     </div>
-                    <p id="searchStatus" class="text-sm text-gray-500 mt-2"></p>
                 </div>
                 
                 <!-- Receipt Container -->
@@ -237,6 +256,20 @@
         </main>
     </div>
 
+    <!-- Report Modal -->
+    <div id="reportModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+            <h2 id="reportTitle" class="text-2xl font-bold mb-4 text-center">Reporte de Ventas</h2>
+            <div id="reportContent" class="overflow-y-auto">
+                <!-- Report table will be generated here -->
+            </div>
+            <div class="text-center mt-6 flex justify-center gap-4">
+                <button id="downloadReportBtn" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Descargar Reporte PDF</button>
+                <button id="closeReportModal" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // --- LOGIN ELEMENTS ---
@@ -271,6 +304,13 @@
             const searchStatusEl = document.getElementById('searchStatus');
             const loggedInUserDisplay = document.getElementById('loggedInUserDisplay');
             const configToggleContainer = document.getElementById('config-toggle-container');
+            const reportSectionContainer = document.getElementById('report-section-container');
+            const generateReportBtn = document.getElementById('generateReportBtn');
+            const reportModal = document.getElementById('reportModal');
+            const reportContent = document.getElementById('reportContent');
+            const closeReportModal = document.getElementById('closeReportModal');
+            const downloadReportBtn = document.getElementById('downloadReportBtn');
+            const reportTitle = document.getElementById('reportTitle');
             
             let saleCounter = 1;
             let productsData = [];
@@ -312,20 +352,19 @@
             function initializeApp() {
                 loggedInUserDisplay.textContent = loggedInUser;
 
-                // Show config button only for admin user
                 if (loggedInUser.toLowerCase() === 'admin') {
                     configToggleContainer.style.display = 'block';
+                    reportSectionContainer.style.display = 'block';
                 } else {
                     configToggleContainer.style.display = 'none';
+                    reportSectionContainer.style.display = 'none';
                 }
 
-                // --- TOGGLE CONFIG VISIBILITY ---
                 toggleConfigBtn.addEventListener('click', () => {
                     configSection.classList.toggle('open');
                     arrowIcon.classList.toggle('rotate-180');
                 });
 
-                // --- GOOGLE SHEETS INTEGRATION ---
                 async function loadProducts() {
                     const url = googleSheetUrlInput.value.trim();
                     if (!url) {
@@ -345,10 +384,12 @@
                         const rows = csvText.split('\n').slice(1);
                         productsData = rows.map(row => {
                             const columns = row.split(',');
-                            if (columns.length >= 2 && columns[0] && columns[1]) {
+                            // Order: Nombre, Precio, Compra, Mayoreo, SKU, Cantidad
+                            if (columns.length >= 3 && columns[0] && columns[1]) {
                                 return {
                                     name: columns[0].trim().replace(/"/g, ''),
-                                    price: parseFloat(columns[1].trim()) || 0
+                                    price: parseFloat(columns[1].trim()) || 0,
+                                    cost: parseFloat(columns[2].trim()) || 0 // Compra is the 3rd column (index 2)
                                 };
                             }
                             return null;
@@ -373,7 +414,6 @@
 
                 loadProductsBtn.addEventListener('click', loadProducts);
 
-                // --- SAVE SALE TO GOOGLE SHEETS ---
                 async function saveSale(saleData) {
                     const apiUrl = salesApiUrlInput.value.trim();
                     if (!apiUrl) {
@@ -405,7 +445,6 @@
                     }
                 }
 
-                // --- SALE NUMBER LOGIC ---
                 async function fetchAndSetSaleNumber() {
                     const apiUrl = salesApiUrlInput.value.trim();
                     if (!apiUrl) {
@@ -434,7 +473,6 @@
                     }
                 }
 
-                // --- SEARCH SALE LOGIC ---
                 searchSaleBtn.addEventListener('click', async () => {
                     const saleNumberToSearch = searchSaleInput.value.trim();
                     const apiUrl = salesApiUrlInput.value.trim();
@@ -488,19 +526,16 @@
                     updateTotals();
                 }
 
-                // --- DATE ---
                 const today = new Date();
                 const saleDate = today.toLocaleDateString('es-BO');
                 document.getElementById('currentDate').textContent = saleDate;
 
-                // --- CURRENCY FORMATTING ---
                 const formatCurrency = (value) => {
                     const numberValue = Number(value);
                     if (isNaN(numberValue)) return 'Bs. 0.00';
                     return `Bs. ${numberValue.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                 };
 
-                // --- TABLE LOGIC ---
                 const updateTotals = () => {
                     let subtotal = 0;
                     const rows = productRowsContainer.querySelectorAll('tr');
@@ -555,7 +590,6 @@
 
                 addProductBtn.addEventListener('click', addRow);
 
-                // --- PDF GENERATION & SAVE ---
                 downloadPdfBtn.addEventListener('click', () => {
                     const clientName = document.getElementById('clientName').value || 'sin-nombre';
                     const currentSaleNumber = saleNumberEl.textContent;
@@ -647,12 +681,141 @@
                     });
                 });
 
+                generateReportBtn.addEventListener('click', async () => {
+                    const startDate = document.getElementById('startDate').value;
+                    const endDate = document.getElementById('endDate').value;
+                    const apiUrl = salesApiUrlInput.value.trim();
+
+                    if (!startDate || !endDate || !apiUrl) {
+                        alert('Por favor, selecciona un rango de fechas y configura la URL de la API.');
+                        return;
+                    }
+                    
+                    reportTitle.textContent = `Reporte de Ventas (${startDate} a ${endDate})`;
+                    reportContent.innerHTML = '<p class="text-center">Generando reporte...</p>';
+                    reportModal.classList.remove('hidden');
+
+                    const reportUrl = `${apiUrl}?startDate=${startDate}&endDate=${endDate}`;
+
+                    try {
+                        if (productsData.length === 0 || !productsData[0].hasOwnProperty('cost')) {
+                            await loadProducts();
+                        }
+
+                        const response = await fetch(reportUrl);
+                        if (!response.ok) throw new Error('Error en la red al generar el reporte.');
+                        const data = await response.json();
+
+                        if (data.result === 'success' && data.reportData) {
+                            displayReport(data.reportData);
+                        } else {
+                            throw new Error(data.error || 'No se encontraron datos para el reporte.');
+                        }
+                    } catch (error) {
+                        reportContent.innerHTML = `<p class="text-center text-red-500">Error: ${error.message}</p>`;
+                    }
+                });
+
+                function displayReport(data) {
+                    let totalSales = 0;
+                    let totalCost = 0;
+
+                    const tableRows = data.map(item => {
+                        const productInfo = productsData.find(p => p.name === item.productName);
+                        const cost = productInfo ? productInfo.cost : 0;
+                        const itemCost = cost * item.quantity;
+                        const profit = item.totalProduct - itemCost;
+                        
+                        totalSales += item.totalProduct;
+                        totalCost += itemCost;
+
+                        return `
+                            <tr>
+                                <td class="border px-4 py-2">${item.date}</td>
+                                <td class="border px-4 py-2">${item.saleNumber}</td>
+                                <td class="border px-4 py-2">${item.productName}</td>
+                                <td class="border px-4 py-2 text-center">${item.quantity}</td>
+                                <td class="border px-4 py-2 text-right">${formatCurrency(item.totalProduct)}</td>
+                                <td class="border px-4 py-2 text-right">${formatCurrency(itemCost)}</td>
+                                <td class="border px-4 py-2 text-right font-semibold ${profit > 0 ? 'text-green-600' : 'text-red-600'}">${formatCurrency(profit)}</td>
+                            </tr>
+                        `;
+                    }).join('');
+
+                    const totalProfit = totalSales - totalCost;
+                    
+                    reportContent.innerHTML = `
+                        <table id="reportTable" class="w-full text-sm text-left text-gray-500">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3">Fecha</th>
+                                    <th class="px-4 py-3">Nr. Venta</th>
+                                    <th class="px-4 py-3">Producto</th>
+                                    <th class="px-4 py-3 text-center">Cant.</th>
+                                    <th class="px-4 py-3 text-right">Venta Total</th>
+                                    <th class="px-4 py-3 text-right">Costo Total</th>
+                                    <th class="px-4 py-3 text-right">Ganancia</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tableRows}
+                            </tbody>
+                            <tfoot class="font-bold text-gray-800 bg-gray-100">
+                                <tr>
+                                    <td colspan="4" class="border px-4 py-2 text-right">TOTALES</td>
+                                    <td class="border px-4 py-2 text-right">${formatCurrency(totalSales)}</td>
+                                    <td class="border px-4 py-2 text-right">${formatCurrency(totalCost)}</td>
+                                    <td class="border px-4 py-2 text-right text-lg ${totalProfit > 0 ? 'text-green-700' : 'text-red-700'}">${formatCurrency(totalProfit)}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    `;
+                }
+                
+                downloadReportBtn.addEventListener('click', () => {
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF({
+                        orientation: 'p',
+                        unit: 'mm',
+                        format: 'letter'
+                    });
+
+                    const reportTable = document.getElementById('reportTable');
+                    const startDate = document.getElementById('startDate').value;
+                    const endDate = document.getElementById('endDate').value;
+                    const fileName = `Reporte_Ventas_${startDate}_a_${endDate}.pdf`;
+                    
+                    html2canvas(reportTable, { scale: 2 }).then(canvas => {
+                        const imgData = canvas.toDataURL('image/png');
+                        const imgWidth = 190; // A4 width in mm minus margins
+                        const pageHeight = 295; // A4 height in mm
+                        const imgHeight = canvas.height * imgWidth / canvas.width;
+                        let heightLeft = imgHeight;
+                        let position = 20; // Initial Y position for the image after the title
+
+                        pdf.text(reportTitle.textContent, 10, 15);
+                        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+                        heightLeft -= (pageHeight - position - 10);
+
+                        while (heightLeft > 0) {
+                            position = -heightLeft; // Adjust position for subsequent pages
+                            pdf.addPage();
+                            pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+                            heightLeft -= pageHeight;
+                        }
+                        
+                        pdf.save(fileName);
+                    });
+                });
+
+                closeReportModal.addEventListener('click', () => {
+                    reportModal.classList.add('hidden');
+                });
+
                 // --- INITIALIZE APP ---
                 fetchAndSetSaleNumber();
                 addRow();
-                if(googleSheetUrlInput.value) {
-                    loadProducts();
-                }
+                loadProducts();
             }
         });
     </script>
