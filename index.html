@@ -384,12 +384,11 @@
                         const rows = csvText.split('\n').slice(1);
                         productsData = rows.map(row => {
                             const columns = row.split(',');
-                            // Order: Nombre, Precio, Compra, Mayoreo, SKU, Cantidad
                             if (columns.length >= 3 && columns[0] && columns[1]) {
                                 return {
                                     name: columns[0].trim().replace(/"/g, ''),
                                     price: parseFloat(columns[1].trim()) || 0,
-                                    cost: parseFloat(columns[2].trim()) || 0 // Compra is the 3rd column (index 2)
+                                    cost: parseFloat(columns[2].trim()) || 0
                                 };
                             }
                             return null;
@@ -691,7 +690,7 @@
                         return;
                     }
                     
-                    reportTitle.textContent = `Reporte de Ventas (${startDate} a ${endDate})`;
+                    reportTitle.textContent = `Reporte de ventas Arelyshop (${startDate} a ${endDate})`;
                     reportContent.innerHTML = '<p class="text-center">Generando reporte...</p>';
                     reportModal.classList.remove('hidden');
 
@@ -774,36 +773,31 @@
                 
                 downloadReportBtn.addEventListener('click', () => {
                     const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF({
-                        orientation: 'p',
-                        unit: 'mm',
-                        format: 'letter'
-                    });
-
+                    
                     const reportTable = document.getElementById('reportTable');
                     const startDate = document.getElementById('startDate').value;
                     const endDate = document.getElementById('endDate').value;
                     const fileName = `Reporte_Ventas_${startDate}_a_${endDate}.pdf`;
+                    const reportPDFTitle = `Reporte de ventas Arelyshop (${startDate} a ${endDate})`;
+
+                    const originalWidth = reportTable.style.width;
+                    reportTable.style.width = '1024px';
                     
-                    html2canvas(reportTable, { scale: 2 }).then(canvas => {
+                    html2canvas(reportTable, { scale: 2, useCORS: true }).then(canvas => {
+                        reportTable.style.width = originalWidth;
+
                         const imgData = canvas.toDataURL('image/png');
                         const imgWidth = 190; // A4 width in mm minus margins
-                        const pageHeight = 295; // A4 height in mm
                         const imgHeight = canvas.height * imgWidth / canvas.width;
-                        let heightLeft = imgHeight;
-                        let position = 20; // Initial Y position for the image after the title
-
-                        pdf.text(reportTitle.textContent, 10, 15);
-                        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-                        heightLeft -= (pageHeight - position - 10);
-
-                        while (heightLeft > 0) {
-                            position = -heightLeft; // Adjust position for subsequent pages
-                            pdf.addPage();
-                            pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-                            heightLeft -= pageHeight;
-                        }
                         
+                        const pdf = new jsPDF({
+                            orientation: 'p',
+                            unit: 'mm',
+                            format: [imgWidth + 20, imgHeight + 40] // Custom format to fit all content
+                        });
+                        
+                        pdf.text(reportPDFTitle, 10, 15);
+                        pdf.addImage(imgData, 'PNG', 10, 25, imgWidth, imgHeight);
                         pdf.save(fileName);
                     });
                 });
